@@ -2,6 +2,7 @@
 import { ref, reactive } from 'vue'
 import RegisterForm from '@/components/RegisterForm.vue'
 import { ElMessage } from 'element-plus'
+import router from '@/router/index.js'
 
 const validatePassword = (rule, value, callback) => {
   if(value === '') {
@@ -96,6 +97,7 @@ const rules = reactive({
 const handleSubmit = () => {
   // Xử lý đăng ký
   ElMessage.success('Đăng ký thành công!')
+  router.replace('/')
 }
 
 

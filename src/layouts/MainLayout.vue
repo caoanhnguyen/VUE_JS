@@ -1,10 +1,9 @@
 <template>
   <div class="main-layout">
-
     <MyHeader />
 
     <main class="content">
-      <router-view class="hero-section"/>
+      <router-view class="contentAnimation" />
       <div class="decoration-circles">
         <div class="circle circle-1"></div>
         <div class="circle circle-2"></div>
@@ -14,7 +13,6 @@
     </main>
 
     <MyFooter />
-
   </div>
 </template>
 
@@ -29,6 +27,22 @@ import MyFooter from '@/components/MyFooter.vue'
   min-height: 70vh; /* Đẩy footer xuống */
   position: relative;
   overflow: hidden;
+}
+
+.contentAnimation {
+  transition: all 0.5s ease-in-out;
+  animation: slideUp 0.6s ease-out backwards;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0.2;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 :deep(.register-container) {
@@ -83,7 +97,8 @@ import MyFooter from '@/components/MyFooter.vue'
   animation-delay: 6s;
 }
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) translateX(0) scale(1);
   }
   33% {
@@ -93,5 +108,4 @@ import MyFooter from '@/components/MyFooter.vue'
     transform: translateY(20px) translateX(-15px) scale(0.9);
   }
 }
-
 </style>

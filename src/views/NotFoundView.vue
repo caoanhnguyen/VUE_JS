@@ -46,7 +46,7 @@ import router from '@/router/index.js'
 
 const goHome = () => {
   // window.location.href = '/'
-  router.push('/')
+  router.push('/home')
 }
 
 const goBack = () => {

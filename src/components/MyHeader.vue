@@ -52,7 +52,7 @@
 
 <script setup>
 const navItems = [
-  { name: 'HOME', path: '/' },
+  { name: 'HOME', path: '/home' },
   { name: 'DAY 4', path: '/register2' },
   { name: 'DAY 6', path: '/register2' },
   { name: 'TODO LIST', path: '/todos' },

@@ -7,6 +7,11 @@ const routes = [
 
     children: [
       {
+        path: 'home',
+        name: 'home',
+        component: () => import('@/views/HomeView.vue')
+      },
+      {
         path: 'register2', // Bài tập Form ("/register2")
         name: 'register',
         component: () => import('@/views/ViewRegister.vue')

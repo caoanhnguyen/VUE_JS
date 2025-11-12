@@ -1,30 +1,40 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import LoginView from '../views/LoginView.vue'
-import ViewRegister from '../views/ViewRegister.vue'
-import MainLayout from '@/layouts/MainLayout.vue'
-import MyToDoView from '@/views/MyToDoView.vue'
-
 
 const routes = [
   {
     path: '/',
-    component: MainLayout, // "Chiếu" cái Bố cục này
+    component: () => import('@/layouts/MainLayout.vue'), // Lazy load MainLayout
 
     children: [
       {
+        path: 'home',
+        name: 'home',
+        component: () => import('@/views/HomeView.vue')
+      },
+      {
         path: 'register2', // Bài tập Form ("/register2")
         name: 'register',
-        component: ViewRegister
+        component: () => import('@/views/ViewRegister.vue')
       },
       {
         path: 'login',
         name: 'login',
-        component: LoginView
+        component: () => import('@/views/LoginView.vue')
       },
       {
         path: 'todos',
         name: 'todo',
-        component: MyToDoView
+        component: () => import('@/views/MyToDoView.vue')
+      },
+      {
+        path: 'schedule-todo',
+        name: 'schedule-todo',
+        component: () => import('@/views/ScheduleToDoView.vue')
+      },
+      {
+        path: '/:pathMatch(.*)*', // "Bắt" (catch) MỌI THỨ
+        name: 'NotFound',
+        component: () => import('../views/NotFoundView.vue')
       }
     ]
   },
@@ -35,7 +45,7 @@ const router = createRouter({
   routes,
   // Thêm cái này để "CSS .active" của bro "ăn"
   linkActiveClass: 'active',
-  linkExactActiveClass: 'exact-active'
+  linkExactActiveClass: 'exact-active',
 })
 
 export default router

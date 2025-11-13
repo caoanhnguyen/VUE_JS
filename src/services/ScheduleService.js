@@ -21,7 +21,6 @@ apiClient.interceptors.request.use(config => {
 apiClient.interceptors.response.use(
 
   (response) => {
-    // === "LOGIC MỞ HỘP" (UNBOXING) MỚI ===
     // "Kiểm tra" (Check) xem "data" (phản hồi) "có phải" (is) "hộp" (wrapper) "chuẩn" (standard) của bro không
     if (response.data && response.data.status === 200) {
       // 1. "Thành công" (Success) ➔ Chỉ "trả" (return) "cái lõi" (core) (data.data)

@@ -339,6 +339,8 @@ const isFormValid = computed(() => {
 })
 
 const editSchedule = (schedule) => {
+  isEditing.value = true
+  showScheduleModal.value = true
   editingSchedule.value = schedule
   addingAfter.value = null
 

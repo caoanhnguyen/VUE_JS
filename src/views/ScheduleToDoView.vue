@@ -79,14 +79,20 @@
             </el-icon>
           </template>
         </el-empty>
-
-        <!-- Edit/Add Form -->
-        <el-card v-if="editingSchedule || addingAfter" class="form-card" shadow="never">
-          <el-form :model="formData" label-position="top">
-            <div class="form-row">
+        <!-- Schedule Modal -->
+        <el-dialog
+          v-model="showScheduleModal"
+          :title="isEditing ? 'Edit Task' : 'Add New Task'"
+          width="600px"
+          :close-on-click-modal="false"
+          @close="cancelEdit"
+          class="schedule-modal"
+        >
+          <el-form :model="formData" label-position="top" class="modal-form">
+            <div class="form-grid">
               <el-form-item
                 label="Start Time"
-                class="time-item"
+                class="form-field"
                 :error="startTimeError"
                 :validate-status="startTimeError ? 'error' : ''"
               >
@@ -98,13 +104,14 @@
                   placeholder="Choose start time"
                   format="HH:mm"
                   value-format="HH:mm"
-                  editable
+                  size="large"
+                  :prefix-icon="Clock"
                 />
               </el-form-item>
-              <span class="separator">-</span>
+
               <el-form-item
                 label="End Time"
-                class="time-item"
+                class="form-field"
                 :error="endTimeError"
                 :validate-status="endTimeError ? 'error' : ''"
               >
@@ -116,45 +123,62 @@
                   placeholder="Choose end time"
                   format="HH:mm"
                   value-format="HH:mm"
-                  editable
+                  size="large"
+                  :prefix-icon="Clock"
                 />
-              </el-form-item>
-              <el-form-item label="Task" class="task-item">
-                <el-input
-                  v-model="formData.task"
-                  placeholder="Enter task description"
-                  maxlength="100"
-                  show-word-limit
-                  clearable
-                />
-              </el-form-item>
-              <el-form-item label=" " class="button-group">
-                <el-button
-                  type="primary"
-                  :icon="Check"
-                  circle
-                  @click="saveSchedule"
-                  :disabled="!isFormValid"
-                />
-                <el-button :icon="Close" circle @click="cancelEdit" />
               </el-form-item>
             </div>
-            <el-form-item label="Notes (Optional)" class="note-item">
+
+            <el-form-item label="Task" class="form-field">
+              <el-input
+                v-model="formData.task"
+                placeholder="Enter task description"
+                maxlength="100"
+                show-word-limit
+                clearable
+                size="large"
+              />
+            </el-form-item>
+
+            <el-form-item label="Notes (Optional)" class="form-field">
               <el-input
                 v-model="formData.note"
                 type="textarea"
-                :rows="3"
+                :rows="4"
                 placeholder="Additional notes..."
                 maxlength="200"
                 show-word-limit
               />
             </el-form-item>
           </el-form>
-        </el-card>
 
+          <template #footer>
+            <div class="modal-footer">
+              <el-button
+                size="large"
+                @click="cancelEdit"
+              >
+                Cancel
+              </el-button>
+              <el-button
+                type="primary"
+                size="large"
+                @click="saveSchedule"
+                :disabled="!isFormValid"
+                class="save-button"
+              >
+                <el-icon class="el-icon--left">
+                  <Check />
+                </el-icon>
+                {{ isEditing ? 'Save Changes' : 'Add Task' }}
+              </el-button>
+            </div>
+          </template>
+        </el-dialog>
+        <!-- </CHANGE> -->
       </div>
+      <!-- Add New Button -->
       <el-button
-        v-if="!editingSchedule && !addingAfter"
         type="primary"
         size="large"
         class="add-new-btn"
@@ -176,6 +200,8 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import ScheduleService from '@/services/ScheduleService.js'
 
 // State variables
+const showScheduleModal = ref(false)
+const isEditing = ref(false)
 const schedules = ref([])
 const loading = ref(false)
 const selectedDate = ref(new Date().toISOString().split('T')[0])
@@ -313,6 +339,8 @@ const isFormValid = computed(() => {
 })
 
 const editSchedule = (schedule) => {
+  isEditing.value = true
+  showScheduleModal.value = true
   editingSchedule.value = schedule
   addingAfter.value = null
 
@@ -329,6 +357,8 @@ const editSchedule = (schedule) => {
 }
 
 const startAdd = (schedule) => {
+  isEditing.value = false
+  showScheduleModal.value = true
   addingAfter.value = schedule
   editingSchedule.value = null
   formData.value = {
@@ -343,6 +373,8 @@ const startAdd = (schedule) => {
 }
 
 const startAddNew = () => {
+  isEditing.value = false
+  showScheduleModal.value = true
   editingSchedule.value = null
   addingAfter.value = true
   formData.value = {
@@ -357,6 +389,8 @@ const startAddNew = () => {
 }
 
 const cancelEdit = () => {
+  isEditing.value = false
+  showScheduleModal.value = false
   editingSchedule.value = null
   addingAfter.value = null
   formData.value = {

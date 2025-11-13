@@ -195,7 +195,7 @@
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import { Calendar, Edit, Plus, Delete, Check, Close } from '@element-plus/icons-vue'
+import { Calendar, Edit, Plus, Delete, Check} from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ScheduleService from '@/services/ScheduleService.js'
 

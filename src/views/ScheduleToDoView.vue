@@ -4,7 +4,7 @@
       <!-- Header -->
       <template #header>
         <div class="header-content">
-          <el-icon :size="32" class="header-icon">
+          <el-icon :size="50" class="header-icon">
             <Calendar />
           </el-icon>
           <div>
@@ -25,14 +25,14 @@
           size="large"
           :clearable="false"
         />
-        <el-tag type="info" size="large"> {{ scheduleCount }} tasks </el-tag>
+        <el-tag type="primary" size="large" effect="light"> {{ scheduleCount }} tasks </el-tag>
       </div>
 
       <!-- Schedule List -->
       <div class="schedule-list" v-loading="loading">
         <div v-for="schedule in schedules" :key="schedule.id" class="schedule-item">
           <div class="schedule-content">
-            <el-tag type="info" size="large" class="time-tag">
+            <el-tag type="primary" size="large" class="time-tag" effect="light">
               {{ schedule.start_time }} - {{ schedule.end_time }}
             </el-tag>
 
@@ -42,30 +42,33 @@
             </div>
           </div>
 
+          <!-- Action Buttons -->
           <div class="action-buttons">
             <el-button
               type="primary"
               :icon="Edit"
               circle
-              size="default"
+              size="large"
               @click="editSchedule(schedule)"
             />
             <el-button
               type="success"
               :icon="Plus"
               circle
-              size="default"
+              size="large"
               @click="startAdd(schedule)"
             />
             <el-button
               type="danger"
               :icon="Delete"
               circle
-              size="default"
+              size="large"
               @click="deleteSchedule(schedule.id)"
             />
           </div>
         </div>
+
+        <!-- Empty State -->
         <el-empty
           v-if="schedules.length === 0 && !loading"
           description="You have no tasks for this date."
@@ -77,6 +80,7 @@
           </template>
         </el-empty>
 
+        <!-- Edit/Add Form -->
         <el-card v-if="editingSchedule || addingAfter" class="form-card" shadow="never">
           <el-form :model="formData" label-position="top">
             <div class="form-row">
@@ -94,6 +98,7 @@
                   placeholder="Choose start time"
                   format="HH:mm"
                   value-format="HH:mm"
+                  editable
                 />
               </el-form-item>
               <span class="separator">-</span>
@@ -111,6 +116,7 @@
                   placeholder="Choose end time"
                   format="HH:mm"
                   value-format="HH:mm"
+                  editable
                 />
               </el-form-item>
               <el-form-item label="Task" class="task-item">
@@ -146,19 +152,19 @@
           </el-form>
         </el-card>
 
-        <el-button
-          v-if="!editingSchedule && !addingAfter"
-          type="primary"
-          size="large"
-          class="add-new-btn"
-          @click="startAddNew"
-        >
-          <el-icon class="el-icon--left">
-            <Plus />
-          </el-icon>
-          Add new task
-        </el-button>
       </div>
+      <el-button
+        v-if="!editingSchedule && !addingAfter"
+        type="primary"
+        size="large"
+        class="add-new-btn"
+        @click="startAddNew"
+      >
+        <el-icon class="el-icon--left">
+          <Plus />
+        </el-icon>
+        Add new task
+      </el-button>
     </el-card>
   </div>
 </template>
@@ -169,6 +175,7 @@ import { Calendar, Edit, Plus, Delete, Check, Close } from '@element-plus/icons-
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ScheduleService from '@/services/ScheduleService.js'
 
+// State variables
 const schedules = ref([])
 const loading = ref(false)
 const selectedDate = ref(new Date().toISOString().split('T')[0])
@@ -488,6 +495,8 @@ const deleteSchedule = async (id) => {
 }
 .schedule-list {
   padding: 0.5rem;
+  max-height: 480px; /* hoặc giá trị phù hợp giao diện của bạn */
+  overflow-y: auto;
 }
 .schedule-item {
   display: flex;

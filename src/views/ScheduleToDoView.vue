@@ -237,7 +237,7 @@ async function fetchSchedules(date) {
   schedules.value = []
   try {
     const data = await ScheduleService.getSchedulesByDate(date)
-    schedules.value = data
+    schedules.value = data.data
     // Cache lại kết quả
     schedulesCache.value[date] = data
   } catch (error) {
@@ -424,8 +424,9 @@ const saveSchedule = async () => {
 
       console.log('Update payload: ', payload)
 
-      await ScheduleService.updateSchedule(editingSchedule.value.id, payload)
-      ElMessage.success('Update schedule successfully!')
+      const res = await ScheduleService.updateSchedule(editingSchedule.value.id, payload)
+      console.log(res)
+      ElMessage.success(res.message)
     } else {
       // CREATE
       const payload = {
@@ -438,8 +439,8 @@ const saveSchedule = async () => {
 
       console.log('Create payload: ', payload)
 
-      await ScheduleService.createSchedule(payload)
-      ElMessage.success('Add schedule successfully!')
+      const res = await ScheduleService.createSchedule(payload)
+      ElMessage.success(res.message)
     }
 
     cancelEdit()
@@ -465,8 +466,8 @@ const deleteSchedule = async (id) => {
     )
 
     loading.value = true
-    await ScheduleService.deleteSchedule(id)
-    ElMessage.success('Delete schedule successfully!')
+    const res = await ScheduleService.deleteSchedule(id)
+    ElMessage.success(res.message)
     schedulesCache.value[selectedDate.value] = undefined // xóa cache ngày hiện tại
     await fetchSchedules(selectedDate.value)
   } catch (error) {

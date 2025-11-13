@@ -12,6 +12,11 @@ const apiClient = axios.create({
   timeout: 10000
 });
 
+apiClient.interceptors.request.use(config => {
+  config.headers['Accept-Language'] = localStorage.getItem('LANG') || 'vi'
+  return config
+})
+
 // === SỬA "LÍNH GÁC CỔNG" (INTERCEPTOR) ===
 apiClient.interceptors.response.use(
 
@@ -20,7 +25,7 @@ apiClient.interceptors.response.use(
     // "Kiểm tra" (Check) xem "data" (phản hồi) "có phải" (is) "hộp" (wrapper) "chuẩn" (standard) của bro không
     if (response.data && response.data.status === 200) {
       // 1. "Thành công" (Success) ➔ Chỉ "trả" (return) "cái lõi" (core) (data.data)
-      return response.data.data;
+      return response.data;
     }
 
     // (Nếu BE "trả" (return) "thẳng" (direct) data (không "hộp"),

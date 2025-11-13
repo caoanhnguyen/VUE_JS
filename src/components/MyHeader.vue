@@ -25,6 +25,18 @@
         </nav>
       </div>
 
+      <el-switch
+        v-model="lang"
+        inline-prompt
+        style="--el-switch-on-color: #667eea; --el-switch-off-color: #764ba2;"
+        active-text="Vi"
+        inactive-text="En"
+        size="large"
+        @change="changeLang"
+        active-value="vi"
+        inactive-value="en"
+      />
+
       <div class="header-actions">
         <button class="icon-button">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -51,6 +63,9 @@
 </template>
 
 <script setup>
+import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
+
 const navItems = [
   { name: 'HOME', path: '/home' },
   { name: 'DAY 4', path: '/register2' },
@@ -58,6 +73,14 @@ const navItems = [
   { name: 'TODO LIST', path: '/todos' },
   { name: 'SCHEDULE TODO', path: 'schedule-todo' },
 ]
+
+const lang = ref(localStorage.getItem('LANG') || 'vi')
+const { locale } = useI18n()
+
+const changeLang = v => {
+  locale.value = v
+  localStorage.setItem('LANG', v)
+}
 </script>
 
 <style scoped>

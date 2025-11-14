@@ -7,15 +7,16 @@
     @update:model-value="handleClose"
     class="schedule-modal"
   >
-    <el-form :model="localFormData" label-position="top" class="modal-form">
-      <!-- Improved time pickers layout with better spacing -->
+    <el-form
+      ref="formRef"
+      :model="localFormData"
+      :rules="rules"
+      label-position="top"
+      class="modal-form"
+    >
       <el-row :gutter="20">
         <el-col :span="12">
-          <el-form-item
-            label="Start Time"
-            :error="startTimeError"
-            :validate-status="startTimeError ? 'error' : ''"
-          >
+          <el-form-item label="Start Time" prop="startTime">
             <el-time-select
               v-model="localFormData.startTime"
               :start="'00:00'"
@@ -31,11 +32,7 @@
           </el-form-item>
         </el-col>
         <el-col :span="12">
-          <el-form-item
-            label="End Time"
-            :error="endTimeError"
-            :validate-status="endTimeError ? 'error' : ''"
-          >
+          <el-form-item label="End Time" prop="endTime">
             <el-time-select
               v-model="localFormData.endTime"
               :start="'00:00'"
@@ -52,8 +49,7 @@
         </el-col>
       </el-row>
 
-      <!-- Better spacing for task field -->
-      <el-form-item label="Task" class="task-field">
+      <el-form-item label="Task" prop="task" class="task-field">
         <el-input
           v-model="localFormData.task"
           placeholder="Enter task description"
@@ -64,7 +60,6 @@
         />
       </el-form-item>
 
-      <!-- Better spacing for notes field -->
       <el-form-item label="Notes (Optional)" class="notes-field">
         <el-input
           v-model="localFormData.note"
@@ -132,16 +127,16 @@ const emit = defineEmits(['update:visible', 'save', 'cancel'])
 // ============================================
 // LOCAL STATE
 // ============================================
+const formRef = ref()
 const localFormData = ref({ ...props.formData })
-const startTimeError = ref('')
-const endTimeError = ref('')
 
 watch(
   () => props.formData,
   (newFormData) => {
     localFormData.value = { ...newFormData }
-    startTimeError.value = ''
-    endTimeError.value = ''
+    if (formRef.value) {
+      formRef.value.clearValidate()
+    }
   },
   { deep: true }
 )
@@ -163,85 +158,79 @@ const hasOverlap = (start1, end1, start2, end2) => {
   return s1 < e2 && s2 < e1
 }
 
-// ============================================
-// REALTIME VALIDATION
-// ============================================
-watch(
-  () => localFormData.value.startTime,
-  (newStartTime) => {
-    if (!newStartTime) {
-      startTimeError.value = ''
+const validateStartTime = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('Vui lòng chọn giờ bắt đầu'))
+    return
+  }
+
+  const excludeId = props.editingSchedule?.id
+  const newStart = timeToMinutes(value)
+
+  for (const schedule of props.schedules) {
+    if (excludeId && schedule.id === excludeId) continue
+
+    const scheduleStart = timeToMinutes(schedule.start_time)
+    const scheduleEnd = timeToMinutes(schedule.end_time)
+
+    if (newStart >= scheduleStart && newStart < scheduleEnd) {
+      callback(new Error(`Giờ bắt đầu trùng với khung giờ ${schedule.start_time} - ${schedule.end_time}`))
       return
     }
-
-    const excludeId = props.editingSchedule?.id
-    const newStart = timeToMinutes(newStartTime)
-
-    for (const schedule of props.schedules) {
-      if (excludeId && schedule.id === excludeId) continue
-
-      const scheduleStart = timeToMinutes(schedule.start_time)
-      const scheduleEnd = timeToMinutes(schedule.end_time)
-
-      if (newStart >= scheduleStart && newStart < scheduleEnd) {
-        startTimeError.value = `Giờ bắt đầu trùng với khung giờ ${schedule.start_time} - ${schedule.end_time}`
-        return
-      }
-    }
-
-    startTimeError.value = ''
-
-    // Re-validate end time if it exists
-    if (localFormData.value.endTime) {
-      validateEndTime()
-    }
-  }
-)
-
-const validateEndTime = () => {
-  const { startTime, endTime } = localFormData.value
-
-  if (!endTime) {
-    endTimeError.value = ''
-    return
   }
 
-  // Check if end time is after start time
-  if (startTime && timeToMinutes(startTime) >= timeToMinutes(endTime)) {
-    endTimeError.value = 'Giờ kết thúc phải sau giờ bắt đầu'
-    return
-  }
-
-  // Check for overlap with other schedules
-  const excludeId = props.editingSchedule?.id
-  if (startTime && endTime) {
-    for (const schedule of props.schedules) {
-      if (excludeId && schedule.id === excludeId) continue
-
-      if (hasOverlap(startTime, endTime, schedule.start_time, schedule.end_time)) {
-        endTimeError.value = `Khung giờ trùng với ${schedule.start_time} - ${schedule.end_time}`
-        return
-      }
-    }
-  }
-
-  endTimeError.value = ''
+  callback()
 }
 
-watch(
-  () => localFormData.value.endTime,
-  () => {
-    validateEndTime()
+const validateEndTime = (rule, value, callback) => {
+  if (!value) {
+    callback(new Error('Vui lòng chọn giờ kết thúc'))
+    return
   }
-)
+
+  const { startTime } = localFormData.value
+
+  if (startTime && timeToMinutes(startTime) >= timeToMinutes(value)) {
+    callback(new Error('Giờ kết thúc phải sau giờ bắt đầu'))
+    return
+  }
+
+  const excludeId = props.editingSchedule?.id
+  if (startTime && value) {
+    for (const schedule of props.schedules) {
+      if (excludeId && schedule.id === excludeId) continue
+
+      if (hasOverlap(startTime, value, schedule.start_time, schedule.end_time)) {
+        callback(new Error(`Khung giờ trùng với ${schedule.start_time} - ${schedule.end_time}`))
+        return
+      }
+    }
+  }
+
+  callback()
+}
+
+// ============================================
+// VALIDATION RULES
+// ============================================
+const rules = {
+  startTime: [
+    { required: true, validator: validateStartTime, trigger: 'blur' }
+  ],
+  endTime: [
+    { required: true, validator: validateEndTime, trigger: 'blur' }
+  ],
+  task: [
+    { required: true, message: 'Vui lòng nhập công việc', trigger: 'blur' },
+    { min: 1, max: 100, message: 'Công việc từ 1-100 ký tự', trigger: 'blur' }
+  ]
+}
 
 // ============================================
 // COMPUTED PROPERTIES
 // ============================================
 const isFormValid = computed(() => {
   return (
-    !startTimeError.value &&
-    !endTimeError.value &&
     localFormData.value.startTime &&
     localFormData.value.endTime &&
     localFormData.value.task &&
@@ -260,15 +249,18 @@ const handleCancel = () => {
   emit('cancel')
 }
 
-const handleSave = () => {
-  if (isFormValid.value) {
-    emit('save', { ...localFormData.value })
-  }
+const handleSave = async () => {
+  if (!formRef.value) return
+
+  await formRef.value.validate((valid) => {
+    if (valid) {
+      emit('save', { ...localFormData.value })
+    }
+  })
 }
 </script>
 
 <style scoped>
-/* Improved modal styling with better spacing and alignment */
 .modal-form {
   padding: 0.5rem 0;
 }
@@ -303,7 +295,6 @@ const handleSave = () => {
   cursor: not-allowed;
 }
 
-/* Improved dialog header styling */
 :deep(.el-dialog__header) {
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   color: white;
@@ -333,7 +324,6 @@ const handleSave = () => {
   color: rgba(255, 255, 255, 0.8);
 }
 
-/* Better body padding */
 :deep(.el-dialog__body) {
   padding: 1.5rem 2rem;
 }
@@ -343,9 +333,8 @@ const handleSave = () => {
   border-top: 1px solid #f0f0f0;
 }
 
-/* Improved form item spacing */
 :deep(.el-form-item) {
-  margin-bottom: 1rem;
+  margin-bottom: 2rem;
 }
 
 :deep(.el-form-item__label) {

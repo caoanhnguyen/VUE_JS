@@ -50,137 +50,47 @@
             </el-icon>
           </template>
         </el-empty>
-
-
-        <!-- Schedule Modal -->
-        <el-dialog
-          v-model="showScheduleModal"
-          :title="isEditing ? 'Edit Task' : 'Add New Task'"
-          width="600px"
-          :close-on-click-modal="false"
-          @close="cancelEdit"
-          class="schedule-modal"
-        >
-          <el-form :model="formData" label-position="top" class="modal-form">
-            <div class="form-grid">
-              <el-form-item
-                label="Start Time"
-                class="form-field"
-                :error="startTimeError"
-                :validate-status="startTimeError ? 'error' : ''"
-              >
-                <el-time-select
-                  v-model="formData.startTime"
-                  :start="'00:00'"
-                  :step="'00:15'"
-                  :end="'23:45'"
-                  placeholder="Choose start time"
-                  format="HH:mm"
-                  value-format="HH:mm"
-                  size="large"
-                  :prefix-icon="Clock"
-                />
-              </el-form-item>
-
-              <el-form-item
-                label="End Time"
-                class="form-field"
-                :error="endTimeError"
-                :validate-status="endTimeError ? 'error' : ''"
-              >
-                <el-time-select
-                  v-model="formData.endTime"
-                  :start="'00:00'"
-                  :step="'00:15'"
-                  :end="'23:45'"
-                  placeholder="Choose end time"
-                  format="HH:mm"
-                  value-format="HH:mm"
-                  size="large"
-                  :prefix-icon="Clock"
-                />
-              </el-form-item>
-            </div>
-
-            <el-form-item label="Task" class="form-field">
-              <el-input
-                v-model="formData.task"
-                placeholder="Enter task description"
-                maxlength="100"
-                show-word-limit
-                clearable
-                size="large"
-              />
-            </el-form-item>
-
-            <el-form-item label="Notes (Optional)" class="form-field">
-              <el-input
-                v-model="formData.note"
-                type="textarea"
-                :rows="4"
-                placeholder="Additional notes..."
-                maxlength="200"
-                show-word-limit
-              />
-            </el-form-item>
-          </el-form>
-
-          <template #footer>
-            <div class="modal-footer">
-              <el-button
-                size="large"
-                @click="cancelEdit"
-              >
-                Cancel
-              </el-button>
-              <el-button
-                type="primary"
-                size="large"
-                @click="saveSchedule"
-                :disabled="!isFormValid"
-                class="save-button"
-              >
-                <el-icon class="el-icon--left">
-                  <Check />
-                </el-icon>
-                {{ isEditing ? 'Save Changes' : 'Add Task' }}
-              </el-button>
-            </div>
-          </template>
-        </el-dialog>
       </div>
 
       <!-- Add New Button -->
-      <el-button
-        type="primary"
-        size="large"
-        class="add-new-btn"
-        @click="startAddNew"
-      >
+      <el-button type="primary" size="large" class="add-new-btn" @click="startAddNew">
         <el-icon class="el-icon--left">
           <Plus />
         </el-icon>
         Add new task
       </el-button>
     </el-card>
+
+    <!-- Moved modal outside of schedule-list for better structure -->
+    <ScheduleModal
+      v-model:visible="showScheduleModal"
+      :is-editing="isEditing"
+      :form-data="formData"
+      :schedules="schedules"
+      :editing-schedule="editingSchedule"
+      @save="saveSchedule"
+      @cancel="cancelEdit"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, watch, onMounted } from 'vue'
-import { Calendar, Plus, Check, Clock } from '@element-plus/icons-vue'
+import { Calendar, Plus } from '@element-plus/icons-vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ScheduleService from '@/services/ScheduleService.js'
 import ScheduleItem from '@/components/ScheduleItem.vue'
+import ScheduleModal from '@/components/ScheduleModal.vue'
 
-// State variables
+// ============================================
+// STATE MANAGEMENT
+// ============================================
 const showScheduleModal = ref(false)
 const isEditing = ref(false)
+const editingSchedule = ref(null)
 const schedules = ref([])
 const loading = ref(false)
 const selectedDate = ref(new Date().toISOString().split('T')[0])
-const editingSchedule = ref(null)
-const addingAfter = ref(null)
 const schedulesCache = ref({})
 
 const formData = ref({
@@ -189,22 +99,21 @@ const formData = ref({
   task: '',
   note: '',
 })
-const errorMessage = ref('')
-const startTimeError = ref('')
-const endTimeError = ref('')
 
-const scheduleCount = computed(() => {
-  return schedules.value.length
-})
+// ============================================
+// COMPUTED PROPERTIES
+// ============================================
+const scheduleCount = computed(() => schedules.value.length)
 
+// ============================================
+// DATA FETCHING
+// ============================================
 async function fetchSchedules(date) {
-
   if (!date) return
 
-  // Nếu đã cache rồi thì lấy ra luôn
+  // Check cache first
   if (schedulesCache.value[date]) {
     schedules.value = schedulesCache.value[date]
-    console.log(schedulesCache.value)
     return
   }
 
@@ -213,16 +122,18 @@ async function fetchSchedules(date) {
   try {
     const data = await ScheduleService.getSchedulesByDate(date)
     schedules.value = data.data
-    // Cache lại kết quả
     schedulesCache.value[date] = data.data
-    console.log(schedulesCache.value)
   } catch (error) {
-    console.error('Error occur:', error)
+    ElMessage.error('Failed to fetch schedules')
+    console.error('Error fetching schedules:', error)
   } finally {
     loading.value = false
   }
 }
 
+// ============================================
+// LIFECYCLE HOOKS
+// ============================================
 onMounted(() => {
   fetchSchedules(selectedDate.value)
 })
@@ -231,94 +142,13 @@ watch(selectedDate, (newDate) => {
   fetchSchedules(newDate)
 })
 
-const timeToMinutes = (time) => {
-  if (!time) return 0
-  const [hours, minutes] = time.split(':').map(Number)
-  return hours * 60 + minutes
-}
-
-const hasOverlap = (start1, end1, start2, end2) => {
-  const s1 = timeToMinutes(start1)
-  const e1 = timeToMinutes(end1)
-  const s2 = timeToMinutes(start2)
-  const e2 = timeToMinutes(end2)
-  return s1 < e2 && s2 < e1
-}
-
-watch(
-  () => formData.value.startTime,
-  (newStartTime) => {
-    if (!newStartTime) {
-      startTimeError.value = ''
-      return
-    }
-    const excludeId = editingSchedule.value?.id
-    for (const schedule of schedules.value) {
-      if (excludeId && schedule.id === excludeId) continue
-
-      const newStart = timeToMinutes(newStartTime)
-      const scheduleStart = timeToMinutes(schedule.start_time)
-      const scheduleEnd = timeToMinutes(schedule.end_time)
-
-      if (newStart >= scheduleStart && newStart < scheduleEnd) {
-        startTimeError.value = `Giờ bắt đầu trùng với khung giờ ${schedule.start_time} - ${schedule.end_time}`
-        return
-      }
-    }
-    startTimeError.value = ''
-    if (formData.value.endTime) {
-      validateEndTime()
-    }
-  },
-)
-
-const validateEndTime = () => {
-  const { startTime, endTime } = formData.value
-  if (!endTime) {
-    endTimeError.value = ''
-    return
-  }
-  if (startTime && timeToMinutes(startTime) >= timeToMinutes(endTime)) {
-    endTimeError.value = 'Giờ kết thúc phải sau giờ bắt đầu'
-    return
-  }
-  const excludeId = editingSchedule.value?.id
-  if (startTime && endTime) {
-    for (const schedule of schedules.value) {
-      if (excludeId && schedule.id === excludeId) continue
-
-      if (hasOverlap(startTime, endTime, schedule.start_time, schedule.end_time)) {
-        endTimeError.value = `Khung giờ trùng với ${schedule.start_time} - ${schedule.end_time}`
-        return
-      }
-    }
-  }
-  endTimeError.value = ''
-}
-
-watch(
-  () => formData.value.endTime,
-  () => {
-    validateEndTime()
-  },
-)
-
-const isFormValid = computed(() => {
-  return (
-    !startTimeError.value &&
-    !endTimeError.value &&
-    formData.value.startTime &&
-    formData.value.endTime &&
-    formData.value.task &&
-    formData.value.task.trim() !== ''
-  )
-})
-
+// ============================================
+// MODAL OPERATIONS
+// ============================================
 const editSchedule = (schedule) => {
   isEditing.value = true
   showScheduleModal.value = true
   editingSchedule.value = schedule
-  addingAfter.value = null
 
   formData.value = {
     startTime: schedule.start_time,
@@ -326,104 +156,76 @@ const editSchedule = (schedule) => {
     task: schedule.task,
     note: schedule.note || '',
   }
-
-  errorMessage.value = ''
-  startTimeError.value = ''
-  endTimeError.value = ''
 }
 
 const startAdd = (schedule) => {
   isEditing.value = false
   showScheduleModal.value = true
-  addingAfter.value = schedule
   editingSchedule.value = null
+
   formData.value = {
     startTime: schedule.end_time,
     endTime: '',
     task: '',
     note: '',
   }
-  errorMessage.value = ''
-  startTimeError.value = ''
-  endTimeError.value = ''
 }
 
 const startAddNew = () => {
   isEditing.value = false
   showScheduleModal.value = true
   editingSchedule.value = null
-  addingAfter.value = true
+
   formData.value = {
     startTime: '',
     endTime: '',
     task: '',
     note: '',
   }
-  errorMessage.value = ''
-  startTimeError.value = ''
-  endTimeError.value = ''
 }
 
 const cancelEdit = () => {
-  isEditing.value = false
   showScheduleModal.value = false
-  editingSchedule.value = null
-  addingAfter.value = null
-  formData.value = {
-    startTime: '',
-    endTime: '',
-    task: '',
-    note: '',
-  }
-  errorMessage.value = ''
-  startTimeError.value = ''
-  endTimeError.value = ''
 }
 
-const saveSchedule = async () => {
-  if (!isFormValid.value) {
-    errorMessage.value =
-      startTimeError.value || endTimeError.value || 'Please fill in all required fields correctly.'
-    ElMessage.warning(errorMessage.value)
-    return
-  }
+// ============================================
+// CRUD OPERATIONS
+// ============================================
+const saveSchedule = async (data) => {
   loading.value = true
   try {
-    // UPDATE
-    if (editingSchedule.value) {
+    if (isEditing.value && editingSchedule.value) {
+      // Update existing schedule
       const payload = {
-        task: formData.value.task,
-        note: formData.value.note,
-        start_time: formData.value.startTime,
-        end_time: formData.value.endTime,
+        task: data.task,
+        note: data.note,
+        start_time: data.startTime,
+        end_time: data.endTime,
       }
 
-      console.log('Update payload: ', payload)
-
       const res = await ScheduleService.updateSchedule(editingSchedule.value.id, payload)
-      console.log(res)
-      ElMessage.success(res.message)
+      ElMessage.success(res.message || 'Schedule updated successfully')
     } else {
-      // CREATE
+      // Create new schedule
       const payload = {
-        task: formData.value.task,
-        note: formData.value.note,
-        start_time: formData.value.startTime,
-        end_time: formData.value.endTime,
+        task: data.task,
+        note: data.note,
+        start_time: data.startTime,
+        end_time: data.endTime,
         schedule_date: selectedDate.value,
       }
 
-      console.log('Create payload: ', payload)
-
       const res = await ScheduleService.createSchedule(payload)
-      ElMessage.success(res.message)
+      ElMessage.success(res.message || 'Schedule created successfully')
     }
 
+    // Close modal and refresh data
     cancelEdit()
-    schedulesCache.value[selectedDate.value] = undefined // xóa cache ngày hiện tại
+    delete schedulesCache.value[selectedDate.value]
     await fetchSchedules(selectedDate.value)
   } catch (error) {
-    console.error('Error occur:', error)
+    ElMessage.error(isEditing.value ? 'Failed to update schedule' : 'Failed to create schedule')
+    console.error('Error saving schedule:', error)
   } finally {
     loading.value = false
   }
@@ -443,14 +245,17 @@ const deleteSchedule = async (id) => {
 
     loading.value = true
     const res = await ScheduleService.deleteSchedule(id)
-    ElMessage.success(res.message)
-    schedulesCache.value[selectedDate.value] = undefined // xóa cache ngày hiện tại
+    ElMessage.success(res.message || 'Schedule deleted successfully')
+
+    // Refresh data
+    delete schedulesCache.value[selectedDate.value]
     await fetchSchedules(selectedDate.value)
   } catch (error) {
     if (error === 'cancel') {
-      ElMessage.info('Canceled deletion.')
+      ElMessage.info('Deletion cancelled')
     } else {
-      console.error('Error occur:', error)
+      ElMessage.error('Failed to delete schedule')
+      console.error('Error deleting schedule:', error)
     }
   } finally {
     loading.value = false
@@ -459,7 +264,6 @@ const deleteSchedule = async (id) => {
 </script>
 
 <style scoped>
-/* Removed schedule-item related styles as they moved to ScheduleItem component */
 .app-container {
   min-height: 100vh;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -523,11 +327,6 @@ const deleteSchedule = async (id) => {
 :deep(.el-button--primary:hover) {
   background: linear-gradient(135deg, #5568d3 0%, #6a3f8f 100%);
 }
-.error {
-  color: red;
-  font-size: 0.875rem;
-  margin-top: 0.25rem;
-}
 @media (max-width: 768px) {
   .app-container {
     padding: 1rem 0.5rem;
@@ -536,17 +335,5 @@ const deleteSchedule = async (id) => {
     flex-direction: column;
     align-items: stretch;
   }
-  .form-row {
-    flex-direction: column;
-    align-items: stretch;
-  }
-  .time-item,
-  .task-item {
-    min-width: 100%;
-  }
-  .separator {
-    display: none;
-  }
 }
-/* </CHANGE> */
 </style>

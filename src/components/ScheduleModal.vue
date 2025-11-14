@@ -222,7 +222,10 @@ const rules = {
   ],
   task: [
     { required: true, message: 'Vui lòng nhập công việc', trigger: 'blur' },
-    { min: 1, max: 100, message: 'Công việc từ 1-100 ký tự', trigger: 'blur' }
+    { max: 100, message: 'Nhập tối đa 100 ký tự', trigger: 'blur' }
+  ],
+  note: [
+    { max: 200, message: 'Nhập tối đa 200 ký tự', trigger: 'blur' }
   ]
 }
 
